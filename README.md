@@ -11,6 +11,7 @@
 ```bash
 git clone https://github.com/Dev-Boom-Git/desktop-tutorial.git
 cd desktop-tutorial
+cd assignment-list
 ```
 
 2. Install dependencies
