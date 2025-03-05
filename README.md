@@ -1,41 +1,12 @@
-# Assignment List Project
+# React + Vite
 
-## Prerequisites
-- Node.js (version 16.0 or higher)
-- npm (Node Package Manager)
-- Git
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Project Setup
+Currently, two official plugins are available:
 
-1. Clone the project repository
-```bash
-git clone https://github.com/Dev-Boom-Git/desktop-tutorial.git
-cd desktop-tutorial
-cd assignment-list
-```
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-2. Install dependencies
-```bash
-npm install
-```
+## Expanding the ESLint configuration
 
-## Running the Project
-
-### Development Mode
-```bash
-npm start or npm run dev
-```
-- Open your browser and navigate to http://localhost:3000
-- The project will automatically reload when you make changes
-
-## Technologies Used
-- React
-- Vite
-- JavaScript
-- python
-
-## Project Structure
-- `src/`: Source code directory
-- `public/`: Public assets and HTML template
-- `package.json`: Project dependencies and scripts
-
+If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
