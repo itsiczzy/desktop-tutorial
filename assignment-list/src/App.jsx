@@ -1,13 +1,15 @@
 import { useState } from "react";
 import Login from "./components/login/login";
+import SignUp from "./components/sign-up/sign-up";
+import AssignmentList from "./components/assignment-list/assignment";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentView, setCurrentView] = useState('welcome');
 
   return (
     <>
       <div style={{ maxWidth: "600px", margin: "auto", textAlign: "center", padding: "20px" }}>
-        {!isLoggedIn ? (
+        {currentView === 'welcome' && (
           <>
             <h1>Welcome to Assignment Tracker</h1>
             <p>
@@ -18,11 +20,29 @@ function App() {
               Unlike writing in a notebook, our tool allows you to edit, delete, and manage your assignments
               anytime, anywhere. Say goodbye to messy handwriting and lost notes!
             </p>
-            <button onClick={() => setIsLoggedIn(true)}>Login</button>
-            <button style={{ marginLeft: "10px" }}>Sign Up</button>
+            <button onClick={() => setCurrentView('login')}>Login</button>
+            <button 
+              style={{ marginLeft: "10px" }} 
+              onClick={() => setCurrentView('signup')}
+            >
+              Sign Up
+            </button>
           </>
-        ) : (
-          <Login onBack={() => setIsLoggedIn(false)} />
+        )}
+
+        {currentView === 'login' && (
+          <Login 
+            onBack={() => setCurrentView('welcome')}
+            onLoginSuccess={() => setCurrentView('assignment-list')}
+          />
+        )}
+
+        {currentView === 'signup' && (
+          <SignUp onBack={() => setCurrentView('welcome')} />
+        )}
+
+        {currentView === 'assignment-list' && (
+          <AssignmentList />
         )}
       </div>
     </>
