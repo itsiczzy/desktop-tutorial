@@ -2,9 +2,11 @@ import { useState } from "react";
 import Login from "./components/login/login";
 import SignUp from "./components/sign-up/sign-up";
 import AssignmentList from "./components/assignment-list/assignment";
+import Test from "./components/test/test";
 
-function App() {
+export default function App() {
   const [currentView, setCurrentView] = useState('welcome');
+  const [user, setUser] = useState(null); // ✅ เก็บข้อมูล user ที่ล็อกอิน
 
   return (
     <>
@@ -33,7 +35,10 @@ function App() {
         {currentView === 'login' && (
           <Login 
             onBack={() => setCurrentView('welcome')}
-            onLoginSuccess={() => setCurrentView('assignment-list')}
+            onLoginSuccess={(userData) => {
+              setUser(userData); // ✅ เก็บ user หลังล็อกอิน
+              setCurrentView('assignment-list');
+            }}
           />
         )}
 
@@ -42,11 +47,9 @@ function App() {
         )}
 
         {currentView === 'assignment-list' && (
-          <AssignmentList />
+          <AssignmentList user={user} />  // ✅ ส่ง user ไปแสดงชื่อ-นามสกุล
         )}
       </div>
     </>
   );
 }
-
-export default App;

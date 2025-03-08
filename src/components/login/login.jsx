@@ -1,36 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 function Login({ onBack, onLoginSuccess }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-
-    // เก็บ mockUser ไว้ใน localStorage (ถ้ายังไม่มี)
-    useEffect(() => {
-        const savedUser = localStorage.getItem('mockUser');
-        if (!savedUser) {
-            localStorage.setItem('mockUser', JSON.stringify({ username: 'testuser', password: 'testpass' }));
-        }
-    }, []);
+    const [loading, setLoading] = useState(false);
 
     const handleLogin = async () => {
-        const savedUser = JSON.parse(localStorage.getItem('mockUser'));
-
-        // เช็คกับ mockUser ก่อน
-        if (username === savedUser.username && password === savedUser.password) {
-            alert('Login successful! (Mock data)');
-            onLoginSuccess(savedUser);
+        if (!username || !password) {
+            alert('Please enter both username and password.');
             return;
         }
 
-        // ถ้าไม่ใช่ mockUser ให้ลองเรียก API จริง
+        setLoading(true);
+
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch('http://localhost:8080/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username, password }),
             });
 
             const data = await response.json();
+            
             if (response.ok) {
                 alert('Login successful!');
                 onLoginSuccess(data);
@@ -40,6 +31,8 @@ function Login({ onBack, onLoginSuccess }) {
         } catch (error) {
             console.error('Login error:', error);
             alert('Something went wrong. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -51,16 +44,20 @@ function Login({ onBack, onLoginSuccess }) {
                 placeholder="Username" 
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                disabled={loading}
             /><br /><br />
             <input 
                 type="password" 
                 placeholder="Password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
             /><br /><br />
-            <button onClick={handleLogin}>Submit</button>
+            <button onClick={handleLogin} disabled={loading}>
+                {loading ? 'Logging in...' : 'Submit'}
+            </button>
             <br /><br />
-            <button onClick={onBack}>Back</button>
+            <button onClick={onBack} disabled={loading}>Back</button>
         </div>
     );
 }
