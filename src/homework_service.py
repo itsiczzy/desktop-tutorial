@@ -470,6 +470,7 @@ def get_delete_homework():
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8080) #Make accessible on local network.
 
+#asdsadsa
 
 # http://localhost:8080/login?username=abc_99&password=P@ssw0rd
 # http://localhost:8080/homework_list?user_id=2
