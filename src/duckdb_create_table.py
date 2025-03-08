@@ -1,6 +1,6 @@
 
 import duckdb
-db_file = 'db/my_database.db' 
+db_file = 'src/db/my_database.db' 
 con = duckdb.connect(database=db_file)
 
 def create_table(table):
@@ -127,8 +127,10 @@ def list_tables_in_duckdb(db_path):
         print(f"File not found: {db_path}")
 
 # list_tables_in_duckdb(db_file)
-result = con.execute("SELECT * \
-                     FROM user_profile").fetchall()
+result = con.execute("""
+                     SELECT * 
+                     FROM user_profile
+                     """).fetchall()
 print(result)
 print(result[0][1])
 print(result[0][2])
