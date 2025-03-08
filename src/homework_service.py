@@ -476,5 +476,5 @@ if __name__ == '__main__':
 # http://localhost:8080/add_homework?user_id=2&subject_id=1&title=Data Training&description=Training Training Training&duedate=2025-03-10&reminder_date=2025-03-6
 # http://localhost:8080/subject_list
 # http://localhost:8080/homework_detail?assign_id=2
-# http://localhost:8080/update_homework?user_id=2&assign_id=3&subject_id=1&title=Data Training&description=Training Training Training&duedate=2025-03-10&reminder_date=2025-03-6
+# http://localhost:8080/update_homework_detail?user_id=2&assign_id=3&subject_id=1&title=Data Training&description=Training Training Training&duedate=2025-03-10&reminder_date=2025-03-6
 # http://localhost:8080/delete_homework?user_id=2&assign_id=2
