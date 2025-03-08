@@ -14,16 +14,17 @@ function Login({ onBack, onLoginSuccess }) {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:8080/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
+            const response = await fetch(`http://localhost:8080/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+                method: 'GET', // Change to GET request
+                headers: { 'Content-Type': 'application/json' }, // Optional, but you can still set it
             });
 
             const data = await response.json();
             
             if (response.ok) {
                 alert('Login successful!');
+                // เก็บข้อมูลใน localStorage เมื่อ login สำเร็จ
+                localStorage.setItem('userData', JSON.stringify(data)); // เก็บข้อมูลเป็น JSON string
                 onLoginSuccess(data);
             } else {
                 alert(data.message || 'Invalid username or password');

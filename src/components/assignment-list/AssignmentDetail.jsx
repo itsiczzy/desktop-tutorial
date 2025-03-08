@@ -35,17 +35,21 @@ function AssignmentDetail({ assignment, onClose, onSave, onDelete }) {
           <input
             type="date"
             name="dueDate"
-            value={editedAssignment.dueDate}
+            value={editedAssignment.duedate}
             onChange={handleChange}
           />
           <button onClick={handleSaveClick}>Save</button>
         </>
       ) : (
         <>
-          <h2>{assignment.title}</h2>
+          <p><strong>Title:</strong></p>
+          <p>{assignment.title}</p>
           <p><strong>Description:</strong></p>
           <p>{assignment.description}</p>
-          <p><strong>Due Date:</strong> {assignment.dueDate}</p>
+          <p><strong>Reminder</strong> {assignment.reminder_date}</p>
+          <p><strong>Due Date:</strong> {assignment.duedate}</p>
+          <p><strong>Status:</strong></p>
+          <p><strong>Reminder Status</strong> {assignment.stage}</p>
           <button onClick={handleEditClick}>Edit</button>
         </>
       )}
