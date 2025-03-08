@@ -1,28 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AssignmentList.css';
 
 function AssignmentList() {
-  const [assignments, setAssignments] = useState([
-    {
-      id: 1,
-      title: 'Math Homework',
-      description: 'Complete chapter 5 exercises',
-      dueDate: '2024-03-15'
-    },
-    {
-      id: 2,
-      title: 'Science Project',
-      description: 'Create a solar system model',
-      dueDate: '2024-03-22'
-    },
-    {
-      id: 3,
-      title: 'English Essay',
-      description: 'Write a 5-page research paper',
-      dueDate: '2024-03-20'
-    }
-  ]);
-
+  const [assignments, setAssignments] = useState([]);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newAssignment, setNewAssignment] = useState({
     title: '',
@@ -30,29 +10,59 @@ function AssignmentList() {
     dueDate: ''
   });
 
-  const handleAddNewAssignment = () => {
-    if (isAddingNew) {
-      // Save the new assignment
-      const newId = assignments.length > 0 
-        ? Math.max(...assignments.map(a => a.id)) + 1 
-        : 1;
-      
-      const assignmentToAdd = {
-        id: newId,
-        ...newAssignment
-      };
+  useEffect(() => {
+    const loadAssignments = async () => {
+      try {
+        const response = await fetch('/api/assignments');
+        if (response.ok) {
+          const data = await response.json();
+          setAssignments(data);
+        } else {
+          throw new Error('Failed to fetch');
+        }
+      } catch (error) {
+        console.warn('Using mock assignments due to error:', error);
+        const savedAssignments = JSON.parse(localStorage.getItem('mockAssignments')) || [
+          { id: 1, title: 'Math Homework', description: 'Complete chapter 5 exercises', dueDate: '2024-03-15' },
+          { id: 2, title: 'Science Project', description: 'Create a solar system model', dueDate: '2024-03-22' },
+          { id: 3, title: 'English Essay', description: 'Write a 5-page research paper', dueDate: '2024-03-20' }
+        ];
+        localStorage.setItem('mockAssignments', JSON.stringify(savedAssignments));
+        setAssignments(savedAssignments);
+      }
+    };
 
-      setAssignments([...assignments, assignmentToAdd]);
-      
-      // Reset the new assignment state
-      setNewAssignment({
-        title: '',
-        description: '',
-        dueDate: ''
-      });
+    loadAssignments();
+  }, []);
+
+  const handleAddNewAssignment = async () => {
+    if (isAddingNew) {
+      const newId = assignments.length > 0 ? Math.max(...assignments.map(a => a.id)) + 1 : 1;
+      const assignmentToAdd = { id: newId, ...newAssignment };
+
+      try {
+        const response = await fetch('/api/assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(assignmentToAdd)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setAssignments([...assignments, data]);
+        } else {
+          throw new Error('Failed to save');
+        }
+      } catch (error) {
+        console.warn('Saving to mockAssignments:', error);
+        const updatedAssignments = [...assignments, assignmentToAdd];
+        localStorage.setItem('mockAssignments', JSON.stringify(updatedAssignments));
+        setAssignments(updatedAssignments);
+      }
+
+      setNewAssignment({ title: '', description: '', dueDate: '' });
       setIsAddingNew(false);
     } else {
-      // Show the input row
       setIsAddingNew(true);
     }
   };
@@ -71,33 +81,38 @@ function AssignmentList() {
       <table className="assignment-table">
         <thead>
           <tr>
-            <th className="assignment-table-header">No.</th>
-            <th className="assignment-table-header">Title</th>
-            <th className="assignment-table-header">Description</th>
-            <th className="assignment-table-header">Due Date</th>
-            <th className="assignment-table-header">Actions</th>
+            <th>No.</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Due Date</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {assignments.map((assignment, index) => (
-            <tr key={assignment.id} className="assignment-table-row">
-              <td className="assignment-table-cell">{index + 1}</td>
-              <td className="assignment-table-cell">{assignment.title}</td>
-              <td className="assignment-table-cell">{assignment.description}</td>
-              <td className="assignment-table-cell">{assignment.dueDate}</td>
-              <td className="assignment-table-cell">
-                <div className="action-buttons">
-                  <button className="action-button">Edit</button>
-                  <button className="action-button">Delete</button>
-                </div>
+            <tr key={assignment.id}>
+              <td>{index + 1}</td>
+              <td>{assignment.title}</td>
+              <td className="assignment-description">
+                {assignment.description.split('\n').map((line, i) => (
+                  <span key={i}>
+                    {line}
+                    <br />
+                  </span>
+                ))}
+              </td>
+              <td>{assignment.dueDate}</td>
+              <td>
+                <button>Edit</button>
+                <button>Delete</button>
               </td>
             </tr>
           ))}
           
           {isAddingNew && (
-            <tr className="assignment-table-row">
-              <td className="assignment-table-cell">{assignments.length + 1}</td>
-              <td className="assignment-table-cell">
+            <tr>
+              <td>{assignments.length + 1}</td>
+              <td>
                 <input
                   type="text"
                   name="title"
@@ -106,16 +121,15 @@ function AssignmentList() {
                   placeholder="Enter title"
                 />
               </td>
-              <td className="assignment-table-cell">
-                <input
-                  type="text"
+              <td>
+                <textarea
                   name="description"
                   value={newAssignment.description}
                   onChange={handleInputChange}
                   placeholder="Enter description"
                 />
               </td>
-              <td className="assignment-table-cell">
+              <td>
                 <input
                   type="date"
                   name="dueDate"
@@ -123,33 +137,16 @@ function AssignmentList() {
                   onChange={handleInputChange}
                 />
               </td>
-              <td className="assignment-table-cell">
-                <div className="action-buttons">
-                  <button 
-                    className="action-button"
-                    onClick={handleAddNewAssignment}
-                  >
-                    Save
-                  </button>
-                  <button 
-                    className="action-button"
-                    onClick={() => setIsAddingNew(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
+              <td>
+                <button onClick={handleAddNewAssignment}>Save</button>
+                <button onClick={() => setIsAddingNew(false)}>Cancel</button>
               </td>
             </tr>
           )}
         </tbody>
       </table>
       <div style={{ marginTop: "20px", textAlign: "center" }}>
-        <button 
-          className="add-button"
-          onClick={handleAddNewAssignment}
-        >
-          + Add New Assignment
-        </button>
+        <button onClick={handleAddNewAssignment}>+ Add New Assignment</button>
       </div>
     </div>
   );
