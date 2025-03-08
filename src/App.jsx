@@ -2,7 +2,7 @@ import { useState } from "react";
 import Login from "./components/login/login";
 import SignUp from "./components/sign-up/sign-up";
 import AssignmentList from "./components/assignment-list/assignment";
-import Test from "./components/test/test";
+
 
 export default function App() {
   const [currentView, setCurrentView] = useState('welcome');
