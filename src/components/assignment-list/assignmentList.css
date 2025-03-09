@@ -1,23 +1,67 @@
 
-  .action-buttons {
-    display: flex;
-    gap: 5px;
-    justify-content: center;
-  }
 
-
-  
-  .assignment-list-container {
-    max-width: 800px;
-    margin: auto;
-    padding: 20px;
-  }
-  .assignment-table-row {
-  transition: background-color 0.3s ease;
+.assignment-table {
+  width: 100%;
+  border-collapse: collapse; 
+  margin-top: 20px; 
 }
 
-.assignment-table-cell input {
+.assignment-table th,
+.assignment-table td {
+  padding: 8px 12px; 
+  text-align: left; 
+}
+
+.assignment-table th {
+  font-weight: bold; 
+}
+
+.assignment-table td {
+  vertical-align: middle; 
+}
+
+button {
+  border: 1px solid black; 
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  background: none; 
+}
+
+button:hover {
+  border-color: #646cff; 
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 5px; 
+}
+
+.form-grid label {
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+
+.form-grid input,
+.form-grid textarea,
+.form-grid select {
   width: 100%;
-  padding: 5px;
-  box-sizing: border-box;
+  padding: 6px;
+  border: 1px solid rgb(255, 255, 255);
 }

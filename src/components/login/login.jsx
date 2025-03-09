@@ -15,17 +15,22 @@ function Login({ onBack, onLoginSuccess }) {
 
         try {
             const response = await fetch(`http://localhost:8080/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
-                method: 'GET', // Change to GET request
-                headers: { 'Content-Type': 'application/json' }, // Optional, but you can still set it
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
             });
 
             const data = await response.json();
-            
+
             if (response.ok) {
+                // ตรวจสอบว่าโปรไฟล์ผู้ใช้มีจริง
+                if (data.message === "fail" && data.result?.error_msg === "no user profile found.") {
+                    alert('User profile not found. Please check your credentials.');
+                    return;  // ถ้าไม่พบโปรไฟล์ผู้ใช้จะไม่เก็บข้อมูลลง localStorage
+                }
+
                 alert('Login successful!');
-                // เก็บข้อมูลใน localStorage เมื่อ login สำเร็จ
-                localStorage.setItem('userData', JSON.stringify(data)); // เก็บข้อมูลเป็น JSON string
-                onLoginSuccess(data);
+                localStorage.setItem('userData', JSON.stringify(data)); // เก็บข้อมูลลงใน localStorage
+                onLoginSuccess(data); // ส่งข้อมูลไปที่ฟังก์ชัน onLoginSuccess
             } else {
                 alert(data.message || 'Invalid username or password');
             }

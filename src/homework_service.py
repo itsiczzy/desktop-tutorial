@@ -3,7 +3,7 @@ from flask_cors import CORS
 import duckdb, datetime
 
 app = Flask(__name__)
-db_file = 'src/db/my_database.db'
+db_file = 'db/my_database.db'
 
 CORS(app)
 
