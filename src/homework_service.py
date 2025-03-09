@@ -3,11 +3,63 @@ from flask_cors import CORS
 import duckdb, datetime
 
 app = Flask(__name__)
+db_file = 'src/db/my_database.db'
 
 CORS(app)
 
-def select_homework_list():
-    pass
+def select_homework_list(response,user_p_id):
+    con = duckdb.connect(database=db_file)
+    today_date = datetime.datetime.now()
+    str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d")
+    # Get list homework
+    result_list = con.execute(f"""
+                            SELECT * FROM (
+                                    SELECT *, ROW_NUMBER() OVER(PARTITION BY stage ORDER BY stage desc, reminder_date asc , id asc) as rn
+                                        FROM (
+                                            SELECT id, title, description, subject_name, CAST(duedate AS DATE) AS duedate,
+                                                        CAST(reminder_date AS DATE) AS reminder_date, status
+                                                        , CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN
+                                                                    CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3'
+                                                                        ELSE '2' END
+                                                            ELSE '1' END AS stage
+                                                FROM (SELECT asm.*, sj.name as subject_name, rd.reminder_date, pg.status FROM assignment asm
+                                                        LEFT JOIN subject sj ON asm.subject_id = sj.id
+                                                        LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id
+                                                        LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id
+                                                        WHERE asm.user_profile_id = '{user_p_id}'
+                                                        AND pg.status <> 'complete')
+                                            ) src 
+                                        ) sec_rn
+                                order by stage desc , rn asc
+                            """).fetchall()
+    
+    # Get rows homework
+    result_rows = con.execute(f"""
+                                SELECT count(*)
+                                FROM (SELECT * FROM assignment asm
+                                        LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id
+                                        LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete'
+                                        WHERE asm.user_profile_id = '{user_p_id}' )
+                            """).fetchall()
+
+    con.close()
+    
+    if len(result_list) > 0:
+        for i in range(len(result_list)):
+            response['result'].append({
+                                        'assign_id': result_list[i][0],
+                                        'title': result_list[i][1],
+                                        'description': result_list[i][2],
+                                        'subject': result_list[i][3],
+                                        'duedate': result_list[i][4],
+                                        'reminder_date': result_list[i][5],
+                                        'status': result_list[i][6],
+                                        'stage': result_list[i][7]
+                                        })
+        response['message'] = 'success'
+        response['total'] = result_rows[0][0]
+    
+    return response
 
 @app.route('/login', methods=['GET'])
 def get_login():
@@ -25,11 +77,13 @@ def get_login():
 
         # Check param
         if set_username and set_password:
-            db_file = 'db/my_database.db' 
             con = duckdb.connect(database=db_file)
-            result_login = con.execute(f"SELECT b.* FROM user a LEFT JOIN user_profile b \
-                                    ON a.id = b.user_id \
-                                    WHERE  a.username = '{set_username}' AND a.password = '{set_password}'").fetchall()
+            result_login = con.execute(f"""
+                                        SELECT b.* FROM user a LEFT JOIN user_profile b
+                                            ON a.id = b.user_id
+                                            WHERE  a.username = '{set_username}' 
+                                            AND a.password = '{set_password}'
+                                    """).fetchall()
             
             con.close()
             
@@ -69,63 +123,93 @@ def get_login():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/homework_list', methods=['GET'])
-def get_homework_list():
-    try:
-        # Get parameters from the query string
-        set_user_profile_id = request.args.get('user_id')
+@app.route('/signup_profile', methods=['GET'])
+def get_signup_profile():
+    try:   
+        set_username = request.args.get('username')
+        set_password = request.args.get('password')       
+        set_first_name = request.args.get('first_name')   
+        set_last_name = request.args.get('last_name')
+        set_email = request.args.get('email')
+        set_student_id = request.args.get('student_id')
 
         response_data = {
-                'remark': 'GET request homework_list received',
-                'user_profile' :{'id': set_user_profile_id},
-                'result': []
-            }
-
+            'remark': 'GET request signup_profile received'
+        }
+        
         # Check param
-        if set_user_profile_id:
-            db_file = 'db/my_database.db' 
-            con = duckdb.connect(database=db_file)
-            today_date = datetime.datetime.now()
-            str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d")
-            #str_today = '2025-02-16'
-    
-            result_list = con.execute(f"SELECT id, title, description, CAST(duedate AS DATE) AS duedate, \
-                                                CAST(reminder_date AS DATE) AS reminder_date, status \
-                                                , CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN \
-                                                            CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3' \
-                                                                ELSE '2' END \
-                                                    ELSE '1' END AS stage \
-                                        FROM (SELECT asm.*, rd.reminder_date, pg.status, pg.completion_date FROM assignment asm \
-                                                LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id \
-                                                LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete'\
-                                                WHERE asm.user_profile_id = '{set_user_profile_id}')  \
-                                        ORDER BY stage desc \
-                                    ").fetchall()
-
-            con.close()
+        if set_username and set_password and set_first_name and set_last_name and set_email and set_student_id:
             
-            if len(result_list) > 0:
-                for i in range(len(result_list)):
-                    response_data['result'].append({
-                                                'id': result_list[i][0],
-                                                'title': result_list[i][1],
-                                                'description': result_list[i][2],
-                                                'duedate': result_list[i][3],
-                                                'reminder_date': result_list[i][4],
-                                                'status': result_list[i][5],
-                                                'stage': result_list[i][6]
-                                                })
-
-                response_data['message'] = 'success'
-                response_data['total'] = len(result_list)
+            con = duckdb.connect(database=db_file)
+            
+            get_user_rows = con.execute(f"""
+                                SELECT count(*) FROM user
+                                WHERE username = '{set_username}'
+                            """).fetchall()
+            
+            if get_user_rows[0][0] == 0: # username is not duplicate
+                # Insert table user
+                con.execute(f"""
+                            INSERT INTO user(username,password)
+                                    VALUES ('{set_username}','{set_password}')
+                            """)
+                print(f"user id username = {set_username} password = {set_password}")
                 
+                # Select id  from tabl user
+                get_user_id = con.execute(f"""
+                                    SELECT id FROM user
+                                    WHERE username = '{set_username}' 
+                                    AND password = '{set_password}'
+                                """).fetchall()
+                set_user_id = get_user_id[0][0]
+                print(f"user id is : {set_user_id}")
+                
+                # Insert table user_profile
+                con.execute(f"""
+                            INSERT INTO user_profile(first_name,last_name,email,student_id,user_id) VALUES
+                                        ('{set_first_name}','{set_last_name}','{set_email}','{set_student_id}','{set_user_id}')
+                            """)
+
+                # Select User description
+                result_list = con.execute(f"""SELECT username , password , first_name, last_name, email, student_id
+                                        FROM (
+                                                SELECT * FROM user usr
+                                                LEFT JOIN user_profile pf ON usr.id = pf.user_id
+                                                WHERE usr.username = '{set_username}' 
+                                                AND usr.password = '{set_password}'
+                                        ) usr_pf
+                                """).fetchall()
+
+                if len(result_list) > 0:
+                    i =0
+                    response_data['result'] = {
+                                                    'username': result_list[i][0],
+                                                    'password': result_list[i][1],
+                                                    'first_name': result_list[i][2],
+                                                    'last_name': result_list[i][3],
+                                                    'email': result_list[i][4],
+                                                    'student_id': result_list[i][5]
+                                                    }
+                    response_data['message'] = 'success'
+                
+                else:
+                    response_data['result'] = {
+                                            'message': "fail",
+                                            'error_msg': "signup incurrect."
+                                            }    
+            else:
+                response_data['result'] = {
+                                        'message': "fail",
+                                        'error_msg': "username is duplicate."
+                                        }    
         else:
             response_data['result'] = {
-                                        'message': "no parameters provided."
-                                        }        
-                
+                                        'error_msg': "no parameters provided."
+                                        }
+            response_data['message'] = 'fail'  
+            
         return jsonify(response_data), 200
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -137,7 +221,6 @@ def get_subject_list():
                 'result': []
             }      
 
-        db_file = 'db/my_database.db' 
         con = duckdb.connect(database=db_file)
         result_subject = con.execute(f"SELECT * FROM subject order by id").fetchall()
 
@@ -158,6 +241,32 @@ def get_subject_list():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
+@app.route('/homework_list', methods=['GET'])
+def get_homework_list():
+    try:
+        # Get parameters from the query string
+        set_user_profile_id = request.args.get('user_id')
+
+        response_data = {
+                'remark': 'GET request homework_list received',
+                'user_profile' :{'id': set_user_profile_id},
+                'result': []
+            }
+
+        # Check param
+        if set_user_profile_id:
+            response_data = select_homework_list(response=response_data,user_p_id=set_user_profile_id)
+                
+        else:
+            response_data['result'] = {
+                                        'message': "no parameters provided."
+                                        }        
+                
+        return jsonify(response_data), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/homework_detail', methods=['GET'])
 def get_homework_detail():
     try:
@@ -170,7 +279,6 @@ def get_homework_detail():
             }      
 
         if set_assign_id:
-            db_file = 'db/my_database.db' 
             con = duckdb.connect(database=db_file)
             today_date = datetime.datetime.now()
             str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d")
@@ -180,7 +288,7 @@ def get_homework_detail():
                                                             CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3' \
                                                                 ELSE '2' END \
                                                     ELSE '1' END AS stage \
-                                        FROM (SELECT asm.*, rd.reminder_date, pg.status, pg.completion_date FROM assignment asm \
+                                        FROM (SELECT asm.*, rd.reminder_date, pg.status FROM assignment asm \
                                                 LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id \
                                                 LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete' \
                                                 WHERE asm.id = '{set_assign_id}' )  \
@@ -232,7 +340,6 @@ def get_add_homework():
                 'result': []
             }        
         
-        db_file = 'db/my_database.db' 
         con = duckdb.connect(database=db_file)
         
         if set_user_profile_id and set_subject_id and set_title and set_description and set_duedate and set_reminder_date:
@@ -256,38 +363,7 @@ def get_add_homework():
                                                             ('panding',NULL,'{set_assign_id}')")
 
             ### Select Homework list ###
-            today_date = datetime.datetime.now()
-            str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d")
-            #str_today = '2025-02-16'
-    
-            result_list = con.execute(f"SELECT id, title, description, CAST(duedate AS DATE) AS duedate, \
-                                                CAST(reminder_date AS DATE) AS reminder_date, status \
-                                                , CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN \
-                                                            CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3' \
-                                                                ELSE '2' END \
-                                                    ELSE '1' END AS stage \
-                                        FROM (SELECT asm.*, rd.reminder_date, pg.status, pg.completion_date FROM assignment asm \
-                                                LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id \
-                                                LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete' \
-                                                WHERE asm.user_profile_id = '{set_user_profile_id}' )  \
-                                        GROUP BY id,title, description, duedate, reminder_date, status \
-                                        ORDER BY stage desc, reminder_date asc , id asc \
-                                    ").fetchall()
-
-            con.close()
-            
-            for i in range(len(result_list)):
-                response_data['result'].append({
-                                            'id': result_list[i][0],
-                                            'title': result_list[i][1],
-                                            'description': result_list[i][2],
-                                            'duedate': result_list[i][3],
-                                            'reminder_date': result_list[i][4],
-                                            'status': result_list[i][5],
-                                            'stage': result_list[i][6]
-                                            })
-            response_data['message'] = 'success'
-            response_data['total'] = len(result_list)
+            response_data = select_homework_list(response=response_data,user_p_id=set_user_profile_id)
                 
         else:
             response_data['result'] = {
@@ -298,9 +374,56 @@ def get_add_homework():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/update_homework_status', methods=['GET'])
+def get_update_homework_status():
+    try:
+        set_user_profile_id = request.args.get('user_id')
+        set_status_assign = request.args.get('status_assign')
+        set_assign_id = request.args.get('assign_id')
+        
+        response_data = {
+                'remark': 'GET request update_homework_status received',
+                'assign_id' :{'id': set_assign_id},
+                'result': []
+            }            
+        
+        if set_user_profile_id and set_assign_id and set_status_assign:
+            con = duckdb.connect(database=db_file)
+            today_date = datetime.datetime.now()
+            str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d %H:%M:%S")
+        
+            ### Update Data ###
+            # Update data to table assignment_progress.
+            if set_status_assign == 'complete':
+                print(set_status_assign)
+                con.execute(f"""
+                                UPDATE assignment_progress 
+                                SET status = '{set_status_assign}', completion_date = '{str_today}'    
+                                WHERE assign_id = '{set_assign_id}'
+                            """)   
+            else:
+                con.execute(f"""
+                                UPDATE assignment_progress 
+                                SET status = '{set_status_assign}'
+                                WHERE assign_id = '{set_assign_id}'
+                            """)         
+        
+            ### Select Homework list ###
+            response_data = select_homework_list(response=response_data,user_p_id=set_user_profile_id)
+        
+        else:
+            response_data['result'] = {
+                                        'message': "no parameters provided."
+                                        }        
+            
+        return jsonify(response_data), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500    
     
-@app.route('/update_homework', methods=['GET'])
-def get_update_homework():
+@app.route('/update_homework_detail', methods=['GET'])
+def get_update_homework_detail():
     try:
         # Get parameters from the query string
         set_assign_id = request.args.get('assign_id')
@@ -310,86 +433,42 @@ def get_update_homework():
         set_description = request.args.get('description')
         set_duedate = request.args.get('duedate')
         set_reminder_date = request.args.get('reminder_date')
-        set_status_assign = request.args.get('status_assign')
                 
         response_data = {
-                'remark': 'GET request update_homework received',
-                'user_profile' :{'id': set_user_profile_id},
+                'remark': 'GET request update_homework_detail received',
+                'assign_id' :{'id': set_assign_id},
                 'result': []
             }        
         
-        db_file = 'db/my_database.db' 
         con = duckdb.connect(database=db_file)
-        today_date = datetime.datetime.now()
-        str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d %H:%M:%S")
         
         if set_user_profile_id and set_subject_id and set_title and set_description and set_duedate and set_reminder_date:
             ### Update Data ### 
             # Update data to table assignment.
-            con.execute(f"UPDATE assignment SET title = '{set_title}', \
-                                                description = '{set_description}'\
-                                                duedate = '{set_duedate}'\
-                                                user_profile_id = '{set_user_profile_id}'\
-                                                subject_id = '{set_subject_id}' \
-                                WHERE id = '{set_assign_id}'")
+            
+            con.execute(f"""
+                            UPDATE assignment SET title = '{set_title}',
+                                                description = '{set_description}',
+                                                duedate = '{set_duedate}',
+                                                subject_id = '{set_subject_id}'
+                                WHERE id = '{set_assign_id}'
+                        """)
             
             # Update data to table assignment_reminders.
-            con.execute(f"UPDATE assignment_reminders SET reminder_date = '{set_reminder_date}' \
-                                WHERE assign_id = '{set_assign_id}'")
+            con.execute(f"""
+                                UPDATE assignment_reminders SET reminder_date = '{set_reminder_date}'
+                                WHERE assign_id = '{set_assign_id}'
+                            """)
+                        
+            ### Select Homework list ###
+            response_data = select_homework_list(response=response_data,user_p_id=set_user_profile_id)
             
-            status = True
-            
-        elif set_status_assign:
-            # Update data to table assignment_progress.
-            if set_status_assign == 'complete':
-                set_completion_date = f"'{str_today}'"
-            else:
-                set_completion_date = "NULL"
-            con.execute(f"UPDATE assignment_progress SET status = '{set_status_assign}', \
-                                            complation_date = {set_completion_date} \
-                                WHERE assign_id = '{set_assign_id}'")            
-                
-            status = True    
                            
         else:
             response_data['result'] = {
                                         'message': "no parameters provided."
                                         }        
-
-            status = False
-        
-        if status:
-            ### Select Homework list ###
-            #str_today = '2025-02-16'
-            result_list = con.execute(f"SELECT id, title, description, CAST(duedate AS DATE) AS duedate, \
-                                                CAST(reminder_date AS DATE) AS reminder_date, status \
-                                                , CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN \
-                                                            CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3' \
-                                                                ELSE '2' END \
-                                                    ELSE '1' END AS stage \
-                                        FROM (SELECT asm.*, rd.reminder_date, pg.status, pg.completion_date FROM assignment asm \
-                                                LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id \
-                                                LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete' \
-                                                WHERE asm.user_profile_id = '{set_user_profile_id}' )  \
-                                        GROUP BY id,title, description, duedate, reminder_date, status \
-                                        ORDER BY stage desc, reminder_date asc , id asc \
-                                    ").fetchall()
-
-            con.close()
             
-            for i in range(len(result_list)):
-                response_data['result'].append({
-                                            'id': result_list[i][0],
-                                            'title': result_list[i][1],
-                                            'description': result_list[i][2],
-                                            'duedate': result_list[i][3],
-                                            'reminder_date': result_list[i][4],
-                                            'status': result_list[i][5],
-                                            'stage': result_list[i][6]
-                                            })
-            response_data['message'] = 'success'
-            response_data['total'] = len(result_list)
-                
         return jsonify(response_data), 200
 
     except Exception as e:
@@ -409,7 +488,6 @@ def get_delete_homework():
                 'result': []
             }        
         
-        db_file = 'db/my_database.db' 
         con = duckdb.connect(database=db_file)
         today_date = datetime.datetime.now()
         str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d %H:%M:%S")
@@ -426,35 +504,7 @@ def get_delete_homework():
             con.execute(f"DELETE FROM assignment WHERE id = '{set_assign_id}'")
 
             ### Select Homework list ###
-            #str_today = '2025-02-16'
-            result_list = con.execute(f"SELECT id, title, description, CAST(duedate AS DATE) AS duedate, \
-                                                CAST(reminder_date AS DATE) AS reminder_date, status \
-                                                , CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN \
-                                                            CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3' \
-                                                                ELSE '2' END \
-                                                    ELSE '1' END AS stage \
-                                        FROM (SELECT asm.*, rd.reminder_date, pg.status, pg.completion_date FROM assignment asm \
-                                                LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id \
-                                                LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete' \
-                                                WHERE asm.user_profile_id = '{set_user_profile_id}' )  \
-                                        GROUP BY id,title, description, duedate, reminder_date, status \
-                                        ORDER BY stage desc, reminder_date asc , id asc \
-                                    ").fetchall()
-
-            con.close()
-            
-            for i in range(len(result_list)):
-                response_data['result'].append({
-                                            'id': result_list[i][0],
-                                            'title': result_list[i][1],
-                                            'description': result_list[i][2],
-                                            'duedate': result_list[i][3],
-                                            'reminder_date': result_list[i][4],
-                                            'status': result_list[i][5],
-                                            'stage': result_list[i][6]
-                                            })
-            response_data['message'] = 'success'
-            response_data['total'] = len(result_list)
+            response_data = select_homework_list(response=response_data,user_p_id=set_user_profile_id)
                 
         else:
             response_data['result'] = {
@@ -477,3 +527,5 @@ if __name__ == '__main__':
 # http://localhost:8080/homework_detail?assign_id=2
 # http://localhost:8080/update_homework_detail?user_id=2&assign_id=3&subject_id=1&title=Data Training&description=Training Training Training&duedate=2025-03-10&reminder_date=2025-03-6
 # http://localhost:8080/delete_homework?user_id=2&assign_id=2
+# http://localhost:8080/signup_profile?username=abc_01&password=P@ssw0rd&first_name=ukrit&last_name=jaiaue&email=ukritice@gmail.com&student_id=ABC490680
+# http://localhost:8080/update_homework_status?assign_id=2&status_assign=inprogress

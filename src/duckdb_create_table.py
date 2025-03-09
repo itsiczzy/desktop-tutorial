@@ -43,7 +43,7 @@ def create_table(table):
         con.execute("CREATE SEQUENCE subject_id_seq;")
         
         con.execute("CREATE TABLE IF NOT EXISTS subject (id INTEGER PRIMARY KEY DEFAULT nextval('subject_id_seq'), \
-                                                        name TEXT(100),)")
+                                                        name TEXT(100))")
         
         con.execute("INSERT INTO subject(name) VALUES ('bio'), ('math'), ('science')")
 
@@ -61,13 +61,12 @@ def create_table(table):
                                 duedate DATETIME, \
                                 user_profile_id INTEGER, \
                                 subject_id INTEGER, \
-                                FOREIGN KEY (user_profile_id) REFERENCES user_profile(id), \
-                                FOREIGN KEY (subject_id) REFERENCES subject(id))")
+                                FOREIGN KEY (user_profile_id) REFERENCES user_profile(id))")
         
         con.execute("INSERT INTO assignment(title,description,duedate,user_profile_id,subject_id) VALUES \
-                                ('anatomy lap','adasdasd','2025-02-28 10:20:54','1','1'), \
-                                ('counting homework','sadfasdfaf','2025-02-20 10:20:54','2','2'), \
-                                ('DNA lap','sadfasdfaf','2025-02-10 10:20:54','2','3')")
+                                ('anatomy lap','adasdasd','2025-02-28','1','1'), \
+                                ('counting homework','sadfasdfaf','2025-02-20','2','2'), \
+                                ('DNA lap','sadfasdfaf','2025-02-10','2','3')")
 
         result = con.execute("SELECT * FROM assignment").fetchall()
         print(result)
@@ -83,9 +82,9 @@ def create_table(table):
                                                 FOREIGN KEY (assign_id) REFERENCES assignment(id))")
         
         con.execute("INSERT INTO assignment_reminders(reminder_date,assign_id) VALUES \
-                                                    ('2025-02-26 10:20:54','1'), \
-                                                    ('2025-02-15 10:20:54','2'), \
-                                                    ('2025-02-09 10:20:54','3')")
+                                                    ('2025-02-26','1'), \
+                                                    ('2025-02-15','2'), \
+                                                    ('2025-02-09','3')")
 
         result = con.execute("SELECT * FROM assignment_reminders").fetchall()
         print(result)
@@ -127,41 +126,46 @@ def list_tables_in_duckdb(db_path):
         print(f"File not found: {db_path}")
 
 # list_tables_in_duckdb(db_file)
-result = con.execute("""
-                     SELECT * 
-                     FROM user_profile
-                     """).fetchall()
-print(result)
-print(result[0][1])
-print(result[0][2])
-print(result[0][3])
-print(result[0][4])
+# result = con.execute("""
+#                      SELECT * 
+#                      FROM assignment_progress
+#                      where assign_id = '2'
+#                      """).fetchall()
+# # result = con.execute("""
+# #                      SELECT * 
+# #                      FROM user_profile
+# #                      """).fetchall()
+# print(result)
+# print(result[0][1])
+# print(result[0][2])
+# print(result[0][3])
+# print(result[0][4])
 
 ### Create Table with param name: ###
-# con.execute("DROP TABLE IF EXISTS assignment_reminders;")
-# con.execute("DROP TABLE IF EXISTS assignment_progress;")
-# con.execute("DROP TABLE IF EXISTS assignment;")
-# con.execute("DROP TABLE IF EXISTS user_profile;")
-# con.execute("DROP TABLE IF EXISTS user;")
-# con.execute("DROP TABLE IF EXISTS subject;")
+con.execute("DROP TABLE IF EXISTS assignment_reminders;")
+con.execute("DROP TABLE IF EXISTS assignment_progress;")
+con.execute("DROP TABLE IF EXISTS assignment;")
+con.execute("DROP TABLE IF EXISTS user_profile;")
+con.execute("DROP TABLE IF EXISTS user;")
+con.execute("DROP TABLE IF EXISTS subject;")
 
-# create_table("user")
-# create_table("user_profile")
-# create_table("subject")
-# create_table("assignment")
-# create_table("assignment_reminders")
-# create_table("assignment_progress")
+create_table("user")
+create_table("user_profile")
+create_table("subject")
+create_table("assignment")
+create_table("assignment_reminders")
+create_table("assignment_progress")
 
 
 
-# import datetime
+import datetime
 
-# today_date = datetime.datetime.now()
-# str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d")
+today_date = datetime.datetime.now()
+str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d")
 # print(str_today)
 # str_today = '2025-02-16'
 
-# result = con.execute(f"SELECT  id,title, description, CAST(duedate AS DATE) AS duedate, CAST(reminder_date AS DATE) AS reminder_date, status \
+# result_list = con.execute(f"SELECT  id,title, description, CAST(duedate AS DATE) AS duedate, CAST(reminder_date AS DATE) AS reminder_date, status \
 #                         , CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN \
 #                                 CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3' ELSE '2' END \
 #                             ELSE '1' END AS stage \
@@ -173,6 +177,36 @@ print(result[0][4])
 #                         GROUP BY id,title, description, duedate, reminder_date, status \
 #                         ORDER BY stage desc, reminder_date asc , id asc \
 #                     ").fetchall()
+# user_p_id = '2'
+# result_list = con.execute(f"""
+#                           SELECT * FROM (
+#                                 SELECT *, ROW_NUMBER() OVER(PARTITION BY stage ORDER BY stage desc, reminder_date asc , id asc) as rm
+#                                     FROM (
+#                                         SELECT id, title, description, CAST(duedate AS DATE) AS duedate,
+#                                                     CAST(reminder_date AS DATE) AS reminder_date, status
+#                                                     , CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN
+#                                                                 CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3'
+#                                                                     ELSE '2' END
+#                                                         ELSE '1' END AS stage
+#                                             FROM (SELECT asm.*, rd.reminder_date, pg.status FROM assignment asm
+#                                                     LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id
+#                                                     LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete'
+#                                                     WHERE asm.user_profile_id = '{user_p_id}' )
+#                                         ) src 
+#                                     ) sec_rm
+#                             order by stage desc , rm asc
+#                         """).fetchall()
+
+# result_rows = con.execute(f"""
+#                             SELECT count(*)
+#                             FROM (SELECT asm.*, rd.reminder_date, pg.status FROM assignment asm
+#                                     LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id
+#                                     LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete'
+#                                     WHERE asm.user_profile_id = '{user_p_id}' )
+#                         """).fetchall()
+    
+# print(len(result_rows)) 
+# print(result_rows[0][0])
 
 # # result = con.execute(f"SELECT asm.*, rd.reminder_date, pg.status, pg.completion_date \
 # #                                 FROM assignment asm \
