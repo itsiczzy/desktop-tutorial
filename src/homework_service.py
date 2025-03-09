@@ -7,10 +7,16 @@ db_file = 'src/db/my_database.db'
 
 CORS(app)
 
-def select_homework_list(response,user_p_id):
+def select_homework_list(response,id,action='profile'):
     con = duckdb.connect(database=db_file)
     today_date = datetime.datetime.now()
     str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d")
+    
+    if action == 'profile':
+        where_condition = f"asm.user_profile_id = '{id}'"
+    elif action == 'assign':
+        where_condition = f"asm.id = '{id}'"
+        
     # Get list homework
     result_list = con.execute(f"""
                             SELECT * FROM (
@@ -26,7 +32,7 @@ def select_homework_list(response,user_p_id):
                                                         LEFT JOIN subject sj ON asm.subject_id = sj.id
                                                         LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id
                                                         LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id
-                                                        WHERE asm.user_profile_id = '{user_p_id}'
+                                                        WHERE {where_condition}
                                                         AND pg.status <> 'complete')
                                             ) src 
                                         ) sec_rn
@@ -34,14 +40,17 @@ def select_homework_list(response,user_p_id):
                             """).fetchall()
     
     # Get rows homework
-    result_rows = con.execute(f"""
-                                SELECT count(*)
-                                FROM (SELECT * FROM assignment asm
-                                        LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id
-                                        LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete'
-                                        WHERE asm.user_profile_id = '{user_p_id}' )
-                            """).fetchall()
-
+    if action == 'profile':
+        result_rows = con.execute(f"""
+                                    SELECT count(*)
+                                    FROM (SELECT * FROM assignment asm
+                                            LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id
+                                            LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete'
+                                            WHERE asm.user_profile_id = '{id}' )
+                                """).fetchall()
+    else:
+        result_rows = '1'
+        
     con.close()
     
     if len(result_list) > 0:
@@ -255,7 +264,7 @@ def get_homework_list():
 
         # Check param
         if set_user_profile_id:
-            response_data = select_homework_list(response=response_data,user_p_id=set_user_profile_id)
+            response_data = select_homework_list(response=response_data,id=set_user_profile_id)
                 
         else:
             response_data['result'] = {
@@ -279,44 +288,14 @@ def get_homework_detail():
             }      
 
         if set_assign_id:
-            con = duckdb.connect(database=db_file)
-            today_date = datetime.datetime.now()
-            str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d")
-            result_list = con.execute(f"SELECT id, title, description, CAST(duedate AS DATE) AS duedate, \
-                                                CAST(reminder_date AS DATE) AS reminder_date, status \
-                                                , CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN \
-                                                            CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3' \
-                                                                ELSE '2' END \
-                                                    ELSE '1' END AS stage \
-                                        FROM (SELECT asm.*, rd.reminder_date, pg.status FROM assignment asm \
-                                                LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id \
-                                                LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete' \
-                                                WHERE asm.id = '{set_assign_id}' )  \
-                                        GROUP BY id,title, description, duedate, reminder_date, status \
-                                        ORDER BY stage desc, reminder_date asc , id asc \
-                                    ").fetchall()
-
-            con.close()
-            
-            if len(result_list) > 0:
-                for i in range(len(result_list)):
-                    response_data['result'].append({
-                                                'id': result_list[i][0],
-                                                'title': result_list[i][1],
-                                                'description': result_list[i][2],
-                                                'duedate': result_list[i][3],
-                                                'reminder_date': result_list[i][4],
-                                                'status': result_list[i][5],
-                                                'stage': result_list[i][6]
-                                                })
-                response_data['message'] = 'success'
-                response_data['total'] = len(result_list)
+            ### Select Homework list ###
+            response_data = select_homework_list(response=response_data,id=set_assign_id,action='assign')
                 
-            else:
-                response_data['result'] = {
-                                        'message': "fail",
-                                        'error_msg': "no user profile found."
-                                        }                     
+        else:
+            response_data['result'] = {
+                                    'message': "fail",
+                                    'error_msg': "no user profile found."
+                                    }                     
 
         return jsonify(response_data), 200
 
@@ -363,7 +342,7 @@ def get_add_homework():
                                                             ('panding',NULL,'{set_assign_id}')")
 
             ### Select Homework list ###
-            response_data = select_homework_list(response=response_data,user_p_id=set_user_profile_id)
+            response_data = select_homework_list(response=response_data,id=set_user_profile_id)
                 
         else:
             response_data['result'] = {
@@ -410,7 +389,7 @@ def get_update_homework_status():
                             """)         
         
             ### Select Homework list ###
-            response_data = select_homework_list(response=response_data,user_p_id=set_user_profile_id)
+            response_data = select_homework_list(response=response_data,id=set_user_profile_id)
         
         else:
             response_data['result'] = {
@@ -461,7 +440,7 @@ def get_update_homework_detail():
                             """)
                         
             ### Select Homework list ###
-            response_data = select_homework_list(response=response_data,user_p_id=set_user_profile_id)
+            response_data = select_homework_list(response=response_data,id=set_user_profile_id)
             
                            
         else:
@@ -504,7 +483,7 @@ def get_delete_homework():
             con.execute(f"DELETE FROM assignment WHERE id = '{set_assign_id}'")
 
             ### Select Homework list ###
-            response_data = select_homework_list(response=response_data,user_p_id=set_user_profile_id)
+            response_data = select_homework_list(response=response_data,id=set_user_profile_id)
                 
         else:
             response_data['result'] = {
