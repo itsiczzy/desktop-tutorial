@@ -139,13 +139,13 @@ function AssignmentList() {
     }
   };
 
-  // Callback เมื่อ AssignmentDetail อัปเดตข้อมูลแล้ว (เช่นจาก edit)
+
   const handleSaveAssignment = (updatedAssignment) => {
     loadAssignments();
     setSelectedAssignment(updatedAssignment);
   };
 
-  // Callback เมื่อ AssignmentDetail ลบการบ้านแล้ว
+
   const handleDeleteAssignment = (assign_id) => {
     loadAssignments();
     setSelectedAssignment(null);
@@ -170,7 +170,7 @@ function AssignmentList() {
           assignment={selectedAssignment}
           onClose={() => setSelectedAssignment(null)}
           onSave={handleSaveAssignment}
-          onDelete={handleDeleteAssignment} // ส่ง callback นี้ไปเพื่อให้ re-fetch หลังลบ
+          onDelete={handleDeleteAssignment} 
         />
       ) : (
         <>

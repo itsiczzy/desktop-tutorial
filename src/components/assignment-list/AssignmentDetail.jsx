@@ -15,7 +15,6 @@ function AssignmentDetail({ assignment, onClose, onSave, onDelete }) {
   }, []);
 
   useEffect(() => {
-    // เมื่อ assignment prop เปลี่ยน ให้รีเซ็ต editedAssignment และ errors
     setEditedAssignment({
       ...assignment,
       duedate: formatDate(assignment.duedate),
@@ -78,13 +77,9 @@ function AssignmentDetail({ assignment, onClose, onSave, onDelete }) {
     setIsEditing(true);
   };
 
-  // ฟังก์ชันสำหรับเล่นเสียงเตือน (ต้องมีไฟล์ error.mp3 อยู่ใน public folder)
-  const playErrorSound = () => {
-    const audio = new Audio("/error.mp3");
-    audio.play();
-  };
 
-  // Validate ฟิลด์ต่างๆ และส่งกลับ errors object
+
+
   const validateFields = () => {
     const newErrors = {};
     if (!editedAssignment.title.trim()) newErrors.title = "Title is required.";
@@ -103,7 +98,6 @@ function AssignmentDetail({ assignment, onClose, onSave, onDelete }) {
     const validationErrors = validateFields();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      playErrorSound(); // เล่นเสียงเตือนเมื่อมี error
       return;
     }
     try {
@@ -126,7 +120,7 @@ function AssignmentDetail({ assignment, onClose, onSave, onDelete }) {
       const response = await fetch(url, { method: "GET" });
       const data = await response.json();
       if (data.message === "success") {
-        await loadUpdatedAssignment(); // โหลดข้อมูลใหม่หลังจากอัปเดตสำเร็จ
+        await loadUpdatedAssignment(); 
         setIsEditing(false);
         setErrors({});
       } else {
@@ -139,11 +133,11 @@ function AssignmentDetail({ assignment, onClose, onSave, onDelete }) {
 
   const handleChange = (e) => {
     setEditedAssignment({ ...editedAssignment, [e.target.name]: e.target.value });
-    // Clear error for the field when user starts typing
+
     setErrors({ ...errors, [e.target.name]: "" });
   };
 
-  // ฟังก์ชันสำหรับลบการบ้าน
+
   const handleDelete = async () => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this assignment?"
@@ -166,7 +160,6 @@ function AssignmentDetail({ assignment, onClose, onSave, onDelete }) {
       const response = await fetch(url, { method: "GET" });
       const data = await response.json();
       if (data.message === "success") {
-        // หลังลบสำเร็จ ให้เรียก onDelete callback และปิดหน้ารายละเอียด
         onDelete(editedAssignment.assign_id);
         onClose();
       } else {
