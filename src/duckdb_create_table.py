@@ -142,19 +142,19 @@ def list_tables_in_duckdb(db_path):
 # print(result[0][4])
 
 ### Create Table with param name: ###
-con.execute("DROP TABLE IF EXISTS assignment_reminders;")
-con.execute("DROP TABLE IF EXISTS assignment_progress;")
-con.execute("DROP TABLE IF EXISTS assignment;")
-con.execute("DROP TABLE IF EXISTS user_profile;")
-con.execute("DROP TABLE IF EXISTS user;")
-con.execute("DROP TABLE IF EXISTS subject;")
+# con.execute("DROP TABLE IF EXISTS assignment_reminders;")
+# con.execute("DROP TABLE IF EXISTS assignment_progress;")
+# con.execute("DROP TABLE IF EXISTS assignment;")
+# con.execute("DROP TABLE IF EXISTS user_profile;")
+# con.execute("DROP TABLE IF EXISTS user;")
+# con.execute("DROP TABLE IF EXISTS subject;")
 
-create_table("user")
-create_table("user_profile")
-create_table("subject")
-create_table("assignment")
-create_table("assignment_reminders")
-create_table("assignment_progress")
+# create_table("user")
+# create_table("user_profile")
+# create_table("subject")
+# create_table("assignment")
+# create_table("assignment_reminders")
+# create_table("assignment_progress")
 
 
 
@@ -164,6 +164,24 @@ today_date = datetime.datetime.now()
 str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d")
 # print(str_today)
 # str_today = '2025-02-16'
+
+
+result_list = con.execute(f"""SELECT username , password , first_name, last_name, email, student_id
+                                        FROM (
+                                                SELECT * FROM user usr
+                                                LEFT JOIN user_profile pf ON usr.id = pf.user_id
+                                                WHERE usr.username = 'pang hiwkhaw' 
+                                                AND usr.password = '12345'
+                                        ) usr_pf
+                                        """).fetchall()
+
+
+# result_list = con.execute(f"""
+#                             SELECT * FROM user
+#                         """).fetchall()
+
+print(result_list)
+
 
 # result_list = con.execute(f"SELECT  id,title, description, CAST(duedate AS DATE) AS duedate, CAST(reminder_date AS DATE) AS reminder_date, status \
 #                         , CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN \
