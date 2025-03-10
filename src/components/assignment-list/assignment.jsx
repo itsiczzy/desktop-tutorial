@@ -65,7 +65,6 @@ function AssignmentList() {
       setLoading(false);
       return;
     }
-
     const { result } = JSON.parse(userData);
     const user_id = result?.id;
     if (!user_id) {
@@ -73,18 +72,14 @@ function AssignmentList() {
       setLoading(false);
       return;
     }
-
     try {
       const response = await fetch(
-        `http://localhost:8080/homework_list?user_id=${encodeURIComponent(
-          user_id
-        )}`
+        `http://localhost:8080/homework_list?user_id=${encodeURIComponent(user_id)}`
       );
       const data = await response.json();
-
       if (
         data.message === "fail" &&
-        data.result.error_msg === "no user profile found."
+        data.result?.error_msg === "no user profile found."
       ) {
         setAssignments([]);
       } else {
@@ -115,7 +110,6 @@ function AssignmentList() {
 
   const handleAddAssignmentSubmit = async (e) => {
     e.preventDefault();
-
     const userData = localStorage.getItem("userData");
     const { result } = JSON.parse(userData);
     const user_id = result?.id;
@@ -123,15 +117,7 @@ function AssignmentList() {
       setError("User ID not found");
       return;
     }
-
-    const url = `http://localhost:8080/add_homework?user_id=${user_id}&subject_id=${
-      newAssignment.subject_id
-    }&title=${encodeURIComponent(
-      newAssignment.title
-    )}&description=${encodeURIComponent(newAssignment.description)}&duedate=${
-      newAssignment.duedate
-    }&reminder_date=${newAssignment.reminder_date}`;
-
+    const url = `http://localhost:8080/add_homework?user_id=${user_id}&subject_id=${newAssignment.subject_id}&title=${encodeURIComponent(newAssignment.title)}&description=${encodeURIComponent(newAssignment.description)}&duedate=${newAssignment.duedate}&reminder_date=${newAssignment.reminder_date}`;
     try {
       const response = await fetch(url, { method: "GET" });
       const data = await response.json();
@@ -153,6 +139,21 @@ function AssignmentList() {
     }
   };
 
+  // Callback เมื่อ AssignmentDetail อัปเดตข้อมูลแล้ว (เช่นจาก edit)
+  const handleSaveAssignment = (updatedAssignment) => {
+    loadAssignments();
+    setSelectedAssignment(updatedAssignment);
+  };
+
+  // Callback เมื่อ AssignmentDetail ลบการบ้านแล้ว
+  const handleDeleteAssignment = (assign_id) => {
+    loadAssignments();
+    setSelectedAssignment(null);
+  };
+
+  if (loading) return <p>Loading assignments...</p>;
+  if (error) return <p>Error: {error}</p>;
+
   return (
     <div className="assignment-list-container">
       <div className="header">
@@ -164,11 +165,12 @@ function AssignmentList() {
           {showAddAssignment ? "Close Form" : "Add Assignment"}
         </button>
       </div>
-
       {selectedAssignment ? (
         <AssignmentDetail
           assignment={selectedAssignment}
           onClose={() => setSelectedAssignment(null)}
+          onSave={handleSaveAssignment}
+          onDelete={handleDeleteAssignment} // ส่ง callback นี้ไปเพื่อให้ re-fetch หลังลบ
         />
       ) : (
         <>
@@ -201,20 +203,15 @@ function AssignmentList() {
                       <td>{assignment.description}</td>
                       <td>{assignment.subject || "-"}</td>
                       <td>
-                        {new Date(assignment.duedate).toLocaleDateString(
-                          "th-TH",
-                          {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
-                          }
-                        )}
+                        {new Date(assignment.duedate).toLocaleDateString("th-TH", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })}
                       </td>
                       <td>
                         {assignment.reminder_date
-                          ? new Date(
-                              assignment.reminder_date
-                            ).toLocaleDateString("th-TH", {
+                          ? new Date(assignment.reminder_date).toLocaleDateString("th-TH", {
                               day: "2-digit",
                               month: "long",
                               year: "numeric",
@@ -224,12 +221,9 @@ function AssignmentList() {
                       <td style={{ color }}>{text}</td>
                       <td>
                         <select
-                          value={assignment.status || "panding"}
+                          value={assignment.status || "pending"}
                           onChange={(e) =>
-                            updateAssignmentStatus(
-                              assignment.assign_id,
-                              e.target.value
-                            )
+                            updateAssignmentStatus(assignment.assign_id, e.target.value)
                           }
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -244,7 +238,6 @@ function AssignmentList() {
               </tbody>
             </table>
           )}
-
           {showAddAssignment && (
             <div className="add-assignment-form">
               <h3>Add Assignment</h3>
@@ -257,7 +250,6 @@ function AssignmentList() {
                   onChange={handleAddAssignmentChange}
                   required
                 />
-
                 <label>Description:</label>
                 <textarea
                   name="description"
@@ -265,7 +257,6 @@ function AssignmentList() {
                   onChange={handleAddAssignmentChange}
                   required
                 />
-
                 <label>Due Date:</label>
                 <input
                   type="date"
@@ -274,7 +265,6 @@ function AssignmentList() {
                   onChange={handleAddAssignmentChange}
                   required
                 />
-
                 <label>Reminder Date:</label>
                 <input
                   type="date"
@@ -283,7 +273,6 @@ function AssignmentList() {
                   onChange={handleAddAssignmentChange}
                   required
                 />
-
                 <label>Subject:</label>
                 <select
                   name="subject_id"
@@ -298,8 +287,6 @@ function AssignmentList() {
                     </option>
                   ))}
                 </select>
-
-                {/* 🔥 เพิ่มปุ่ม Add Assignment & Cancel ที่หายไป */}
                 <div className="button-group">
                   <button type="submit" className="submit-btn">
                     Add Assignment
