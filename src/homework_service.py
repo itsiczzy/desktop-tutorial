@@ -9,8 +9,8 @@ CORS(app)
 
 def select_homework_list(response,id,action='profile'):
     con = duckdb.connect(database=db_file)
-    today_date = datetime.datetime.now()
-    str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d")
+    today_date = datetime.datetime.now() # Get today and currect time.
+    str_today = datetime.datetime.strftime(today_date,"%Y-%m-%d") # Convert datetime format to string format (YYYY-MM-DD)
     
     if action == 'profile':
         where_condition = f"asm.user_profile_id = '{id}'"
@@ -19,16 +19,24 @@ def select_homework_list(response,id,action='profile'):
         
     # Get list homework
     result_list = con.execute(f"""
-                            SELECT * FROM (
-                                    SELECT *, ROW_NUMBER() OVER(PARTITION BY stage ORDER BY stage desc, reminder_date asc , id asc) as rn
+                                SELECT * 
+                                FROM (
+                                    SELECT *, 
+                                            ROW_NUMBER() OVER(PARTITION BY stage ORDER BY stage desc, reminder_date asc , id asc) as rn
                                         FROM (
-                                            SELECT id, title, description, subject_name, CAST(duedate AS DATE) AS duedate,
-                                                        CAST(reminder_date AS DATE) AS reminder_date, status
-                                                        , CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN
-                                                                    CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3'
-                                                                        ELSE '2' END
-                                                            ELSE '1' END AS stage
-                                                FROM (SELECT asm.*, sj.name as subject_name, rd.reminder_date, pg.status FROM assignment asm
+                                            SELECT id, 
+                                                    title, 
+                                                    description, 
+                                                    subject_name, 
+                                                    CAST(duedate AS DATE) AS duedate,
+                                                    CAST(reminder_date AS DATE) AS reminder_date, 
+                                                    status,
+                                                    CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN
+                                                                CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3'
+                                                                    ELSE '2' END
+                                                        ELSE '1' END AS stage
+                                                FROM (SELECT asm.*, sj.name as subject_name, rd.reminder_date, pg.status 
+                                                        FROM assignment asm
                                                         LEFT JOIN subject sj ON asm.subject_id = sj.id
                                                         LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id
                                                         LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id
@@ -44,10 +52,11 @@ def select_homework_list(response,id,action='profile'):
         result_rows = con.execute(f"""
                                     SELECT count(*)
                                     FROM (SELECT * FROM assignment asm
-                                            LEFT JOIN assignment_reminders rd ON asm.id = rd.assign_id
-                                            LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id AND pg.status <> 'complete'
-                                            WHERE asm.user_profile_id = '{id}' )
+                                            LEFT JOIN assignment_progress pg ON asm.id = pg.assign_id
+                                            WHERE asm.user_profile_id = '{id}'
+                                            AND pg.status <> 'complete')
                                 """).fetchall()
+        result_rows = result_rows[0][0]
     else:
         result_rows = '1'
         
@@ -66,7 +75,7 @@ def select_homework_list(response,id,action='profile'):
                                         'stage': result_list[i][7]
                                         })
         response['message'] = 'success'
-        response['total'] = result_rows[0][0]
+        response['total'] = result_rows
     
     return response
 
@@ -134,7 +143,8 @@ def get_login():
 
 @app.route('/signup_profile', methods=['GET'])
 def get_signup_profile():
-    try:   
+    try:
+        #TODO Get parameters from web service url.
         set_username = request.args.get('username')
         set_password = request.args.get('password')       
         set_first_name = request.args.get('first_name')   
@@ -142,21 +152,24 @@ def get_signup_profile():
         set_email = request.args.get('email')
         set_student_id = request.args.get('student_id')
 
+        #TODO create response_data parameter with json format.
         response_data = {
             'remark': 'GET request signup_profile received'
         }
         
-        # Check param
+        #TODO Check value all parameters.
         if set_username and set_password and set_first_name and set_last_name and set_email and set_student_id:
             
+            #TODO Open DB Connection.
             con = duckdb.connect(database=db_file)
             
+            # Select count username from 'user' table
             get_user_rows = con.execute(f"""
                                 SELECT count(*) FROM user
                                 WHERE username = '{set_username}'
                             """).fetchall()
             
-            if get_user_rows[0][0] == 0: # username is not duplicate
+            if get_user_rows[0][0] == 0: # There isn't data from the 'user' table (username is not duplicate)
                 # Insert table user
                 con.execute(f"""
                             INSERT INTO user(username,password)
@@ -187,8 +200,11 @@ def get_signup_profile():
                                         ) usr_pf
                                 """).fetchall()
 
-                if len(result_list) > 0:
-                    i =0
+                #TODO Close DB Connection.
+                con.close()
+
+                if len(result_list) > 0: # Check result : If there is data from the 'user' and 'user_profile' table. 
+                    i =0 # Default index 0 because register 1 username have 1 user profile only.
                     response_data['result'] = {
                                                     'username': result_list[i][0],
                                                     'password': result_list[i][1],
@@ -199,17 +215,17 @@ def get_signup_profile():
                                                     }
                     response_data['message'] = 'success'
                 
-                else:
+                else: # No result from 'user' and 'user_profile' table (Signup not complete)
                     response_data['result'] = {
                                             'message': "fail",
                                             'error_msg': "signup incurrect."
                                             }    
-            else:
+            else:# There is data 'username' from the 'user' table 
                 response_data['result'] = {
                                         'message': "fail",
                                         'error_msg': "username is duplicate."
                                         }    
-        else:
+        else: # No send value from web service.
             response_data['result'] = {
                                         'error_msg': "no parameters provided."
                                         }
