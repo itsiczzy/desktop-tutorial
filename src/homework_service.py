@@ -324,22 +324,30 @@ def get_add_homework():
         if set_user_profile_id and set_subject_id and set_title and set_description and set_duedate and set_reminder_date:
             ### Insert Data ###
             # Insert data to table assignment.
-            con.execute(f"INSERT INTO assignment(title,description,duedate,user_profile_id,subject_id) VALUES \
-                                    ('{set_title}','{set_description}','{set_duedate}','{set_user_profile_id}','{set_subject_id}')")
+            con.execute(f"""
+                            INSERT INTO assignment(title,description,duedate,user_profile_id,subject_id) VALUES
+                                    ('{set_title}','{set_description}','{set_duedate}','{set_user_profile_id}','{set_subject_id}')
+                        """)
             
             # Select id new transaction from table assignment.
-            get_id = con.execute(f"SELECT id FROM assignment WHERE title = '{set_title}' AND description = '{set_description}' \
-                                                        AND user_profile_id = '{set_user_profile_id}' AND subject_id = '{set_subject_id}'").fetchall()
+            get_id = con.execute(f"""
+                                    SELECT id FROM assignment WHERE title = '{set_title}' AND description = '{set_description}'
+                                                        AND user_profile_id = '{set_user_profile_id}' AND subject_id = '{set_subject_id}'
+                                    """).fetchall()
             set_assign_id = get_id[0][0]
             
             if len(get_id) == 1:
                 # Insert data to table assignment_reminders.
-                con.execute(f"INSERT INTO assignment_reminders(reminder_date,assign_id) VALUES \
-                                                            ('{set_reminder_date}','{set_assign_id}')")
+                con.execute(f"""
+                                INSERT INTO assignment_reminders(reminder_date,assign_id) VALUES
+                                                            ('{set_reminder_date}','{set_assign_id}')
+                                """)
 
                 # Insert data to table assignment_progress.
-                con.execute(f"INSERT INTO assignment_progress(status,completion_date,assign_id) VALUES \
-                                                            ('panding',NULL,'{set_assign_id}')")
+                con.execute(f"""
+                                INSERT INTO assignment_progress(status,completion_date,assign_id) VALUES
+                                                            ('panding',NULL,'{set_assign_id}')
+                                """)
 
             ### Select Homework list ###
             response_data = select_homework_list(response=response_data,id=set_user_profile_id)
@@ -439,7 +447,7 @@ def get_update_homework_detail():
                                 WHERE assign_id = '{set_assign_id}'
                             """)
                         
-            ### Select Homework list ###
+            ### Select Homework list ###  
             response_data = select_homework_list(response=response_data,id=set_user_profile_id)
             
                            
