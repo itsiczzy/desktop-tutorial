@@ -162,7 +162,6 @@ def get_signup_profile():
                             INSERT INTO user(username,password)
                                     VALUES ('{set_username}','{set_password}')
                             """)
-                print(f"user id username = {set_username} password = {set_password}")
                 
                 # Select id  from tabl user
                 get_user_id = con.execute(f"""
@@ -171,7 +170,6 @@ def get_signup_profile():
                                     AND password = '{set_password}'
                                 """).fetchall()
                 set_user_id = get_user_id[0][0]
-                print(f"user id is : {set_user_id}")
                 
                 # Insert table user_profile
                 con.execute(f"""
