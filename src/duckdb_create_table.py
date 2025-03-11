@@ -263,8 +263,11 @@ result_list = con.execute(f"""SELECT username , password , first_name, last_name
 ### List All Table in DB file ###
 # list_tables_in_duckdb(db_file)
 
-con.execute("UPDATE subject set name = 'DBP'  \
-                     WHERE id = 1 ")
+# con.execute("UPDATE subject set name = 'DBP'  \
+#                      WHERE id = 1 ")
+
+# con.execute("UPDATE subject set name = 'junior project'  \
+#                      WHERE id = 3 ")
 
 
 
@@ -274,4 +277,15 @@ print(result)
 
 
 
+# set_username = "panggg"
+# set_password = "12345"
+# result_login = con.execute(f"""
+#                                         SELECT b.* FROM user a LEFT JOIN user_profile b
+#                                             ON a.id = b.user_id
+#                                             WHERE  a.username = '{set_username}' 
+#                                             AND a.password = '{set_password}'
+#                                     """).fetchall()
+# print(result_login)
 
+
+# con.execute("INSERT INTO subject(name) VALUES ('operation management'), ('linear algebra')")
