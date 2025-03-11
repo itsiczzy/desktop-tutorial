@@ -17,12 +17,13 @@ def select_homework_list(response,id,action='profile'):
     elif action == 'assign':
         where_condition = f"asm.id = '{id}'"
         
-    # Get list homework
+    # Get list homework   rownumber การใส่ลำดับของชุดข้อมูล ที่มี same stage by เรียงลำดับ ข้อมุลในแต่ละะ stage จาก reminder_date asc , duedate asc , id asc
+    #
     result_list = con.execute(f"""
                                 SELECT * 
                                 FROM (
                                     SELECT *, 
-                                            ROW_NUMBER() OVER(PARTITION BY stage ORDER BY stage desc, reminder_date asc , id asc) as rn
+                                            ROW_NUMBER() OVER(PARTITION BY stage ORDER BY reminder_date asc , duedate asc , id asc) as rn
                                         FROM (
                                             SELECT id, 
                                                     title, 
@@ -31,7 +32,7 @@ def select_homework_list(response,id,action='profile'):
                                                     CAST(duedate AS DATE) AS duedate,
                                                     CAST(reminder_date AS DATE) AS reminder_date, 
                                                     status,
-                                                    CASE WHEN CAST(reminder_date AS DATE) < CAST('{str_today}' AS DATE) THEN
+                                                    CASE WHEN CAST(reminder_date AS DATE) <= CAST('{str_today}' AS DATE) THEN
                                                                 CASE WHEN CAST(duedate AS DATE) < CAST('{str_today}' AS DATE) THEN '3'
                                                                     ELSE '2' END
                                                         ELSE '1' END AS stage
@@ -119,7 +120,7 @@ def get_login():
                                         } 
                 response_data['message'] = 'fail'          
             
-        elif set_username:
+        elif set_username:     
             response_data['result'] = {
                                         'error_msg': "no input password."
                                         }
@@ -163,7 +164,7 @@ def get_signup_profile():
             #TODO Open DB Connection.
             con = duckdb.connect(database=db_file)
             
-            # Select count username from 'user' table
+            # Select count username from 'user' table     นับ ถ้าไม่เจอก็แทรก
             get_user_rows = con.execute(f"""
                                 SELECT count(*) FROM user
                                 WHERE username = '{set_username}'
@@ -530,3 +531,44 @@ if __name__ == '__main__':
 # http://localhost:8080/delete_homework?user_id=2&assign_id=2
 # http://localhost:8080/signup_profile?username=abc_01&password=P@ssw0rd&first_name=ukrit&last_name=jaiaue&email=ukritice@gmail.com&student_id=ABC490680
 # http://localhost:8080/update_homework_status?assign_id=2&status_assign=inprogress
+
+@app.route('/add_stat_subject', methods=['POST'])
+def add_stat_subject():
+    try:
+        # ตั้งค่าค่าของ subject_name เป็น "stat"
+        new_subject_name = "stat"  # กำหนดชื่อวิชาเป็น "stat"
+
+        response_data = {'remark': 'Adding or updating subject', 'result': []}
+
+        if new_subject_name:
+            con = duckdb.connect(database=db_file)
+            
+            # เช็ค
+            existing_subject = con.execute("""
+                SELECT subject_id FROM subject WHERE subject_name = ?
+            """, (new_subject_name,)).fetchone()
+
+            if existing_subject:
+                # ถ้ามีให้ทำการอัปเดต
+                con.execute("""
+                    UPDATE subject
+                    SET subject_name = ?
+                    WHERE subject_id = ?
+                """, (new_subject_name, existing_subject[0]))
+                response_data['result'] = {'message': 'Subject updated successfully'}
+            else:
+                # ถ้าไม่มีให้ทำการเพิ่ม
+                con.execute("""
+                    INSERT INTO subject (subject_name)
+                    VALUES (?)
+                """, (new_subject_name,))  # เพิ่มเครื่องหมายจุลภาคเพื่อให้เป็น tuple
+                response_data['result'] = {'message': 'Subject added successfully'}
+
+        else:
+            response_data['result'] = {'message': 'Missing parameters'}
+
+        return jsonify(response_data), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    # con.close()

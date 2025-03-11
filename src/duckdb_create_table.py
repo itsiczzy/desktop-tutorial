@@ -45,7 +45,7 @@ def create_table(table):
         con.execute("CREATE TABLE IF NOT EXISTS subject (id INTEGER PRIMARY KEY DEFAULT nextval('subject_id_seq'), \
                                                         name TEXT(100))")
         
-        con.execute("INSERT INTO subject(name) VALUES ('bio'), ('math'), ('science')")
+        con.execute("INSERT INTO subject(name) VALUES ('operation management'), ('linear algebra'), ('stat')")
 
         result = con.execute("SELECT * FROM subject").fetchall()
         print(result)
@@ -170,8 +170,8 @@ result_list = con.execute(f"""SELECT username , password , first_name, last_name
                                         FROM (
                                                 SELECT * FROM user usr
                                                 LEFT JOIN user_profile pf ON usr.id = pf.user_id
-                                                WHERE usr.username = 'pang hiwkhaw' 
-                                                AND usr.password = '12345'
+                                                WHERE usr.username = 'panggg' 
+                                                
                                         ) usr_pf
                                         """).fetchall()
 
@@ -180,7 +180,7 @@ result_list = con.execute(f"""SELECT username , password , first_name, last_name
 #                             SELECT * FROM user
 #                         """).fetchall()
 
-print(result_list)
+# print(result_list)
 
 
 # result_list = con.execute(f"SELECT  id,title, description, CAST(duedate AS DATE) AS duedate, CAST(reminder_date AS DATE) AS reminder_date, status \
@@ -263,7 +263,15 @@ print(result_list)
 ### List All Table in DB file ###
 # list_tables_in_duckdb(db_file)
 
-# result = con.execute("SELECT a.*, b.reminder_date FROM assignment a \
-#                      JOIN assignment_reminders b ON a.id = b.assign_id").fetchall()
-# print(result)
+con.execute("UPDATE subject set name = 'DBP'  \
+                     WHERE id = 1 ")
+
+
+
+result = con.execute("SELECT * \
+                     FROM subject").fetchall()
+print(result)
+
+
+
 
