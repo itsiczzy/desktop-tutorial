@@ -11,21 +11,30 @@ function SignUp({ onBack }) {
     const [error, setError] = useState(null);
 
     const handleSignUp = async () => {
+        // Validate that all fields are filled
+        if (!studentId || !username || !password || !confirmPassword || !firstName || !lastName || !email) {
+            setError("Please fill out all fields.");
+            return;
+        }
+
         if (password !== confirmPassword) {
             setError("Passwords do not match!");
             return;
         }
-
+    
         try {
             const response = await fetch(`http://localhost:8080/signup_profile?username=${username}&password=${password}&first_name=${firstName}&last_name=${lastName}&email=${email}&student_id=${studentId}`, {
                 method: 'GET'
             });
-
+    
             const data = await response.json();
-
-            if (response.ok) {
+    
+            // Check if the backend indicates failure even with a 200 status code
+            if (data.result && data.result.message === "fail") {
+                setError(data.result.error_msg || "Failed to create an account.");
+            } else if (response.ok) {
                 alert("Account created successfully!");
-                onBack(); // กลับไปหน้า login
+                onBack(); // Navigate back to the login page
             } else {
                 setError(data.message || "Failed to create an account.");
             }
@@ -33,18 +42,53 @@ function SignUp({ onBack }) {
             setError("Something went wrong. Please try again.");
         }
     };
-
+    
     return (
         <div style={{ maxWidth: "400px", margin: "auto", textAlign: "center", padding: "20px" }}>
             <h2>Sign Up</h2>
             {error && <p style={{ color: 'red' }}>{error}</p>}
-            <input type="text" placeholder="Student ID" value={studentId} onChange={(e) => setStudentId(e.target.value)} /><br /><br />
-            <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} /><br /><br />
-            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} /><br /><br />
-            <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /><br /><br />
-            <input type="text" placeholder="First Name" value={firstName} onChange={(e) => setFirstName(e.target.value)} /><br /><br />
-            <input type="text" placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} /><br /><br />
-            <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} /><br /><br />
+            <input 
+                type="text" 
+                placeholder="Student ID" 
+                value={studentId} 
+                onChange={(e) => setStudentId(e.target.value)} 
+            /><br /><br />
+            <input 
+                type="text" 
+                placeholder="Username" 
+                value={username} 
+                onChange={(e) => setUsername(e.target.value)} 
+            /><br /><br />
+            <input 
+                type="password" 
+                placeholder="Password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+            /><br /><br />
+            <input 
+                type="password" 
+                placeholder="Confirm Password" 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+            /><br /><br />
+            <input 
+                type="text" 
+                placeholder="First Name" 
+                value={firstName} 
+                onChange={(e) => setFirstName(e.target.value)} 
+            /><br /><br />
+            <input 
+                type="text" 
+                placeholder="Last Name" 
+                value={lastName} 
+                onChange={(e) => setLastName(e.target.value)} 
+            /><br /><br />
+            <input 
+                type="email" 
+                placeholder="Email Address" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+            /><br /><br />
             <button onClick={handleSignUp}>Create Account</button>
             <br /><br />
             <button onClick={onBack}>Back</button>
